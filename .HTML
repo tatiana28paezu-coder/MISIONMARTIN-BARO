@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Misión Ignacio Martín-Baró: Psicología y Liberación</title>
+  <style>
+    :root {
+      --primary: #2c3e50;
+      --accent: #f39c12;
+      --danger: #e74c3c;
+      --success: #2ecc71;
+      --bg-dark: #1a252f;
+      --panel: #34495e;
+    }
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      margin: 0;
+      padding: 0;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-dark);
+      color: #fff;
+    }
+    .screen {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+      z-index: 10;
+    }
+    .active-screen { display: flex; }
+    
+    /* LOBBY STYLES */
+    #screen-lobby {
+      background: linear-gradient(135deg, #2c3e50, #8e44ad);
+      text-align: center;
+    }
+    .lobby-card {
+      background: rgba(0,0,0,0.65);
+      border-radius: 16px;
+      padding: 25px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border: 2px solid var(--accent);
+    }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+      border: none;
+      font-size: 1rem;
+      text-align: center;
+      font-weight: bold;
+    }
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1.1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 10px;
+      transition: all 0.2s;
+      width: 100%;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    }
+    .btn:disabled { background: #7f8c8d; cursor: not-allowed; }
+    .btn:active { transform: scale(0.98); }
+    .participants-container {
+      margin-top: 15px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 10px;
+      max-height: 140px;
+      overflow-y: auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+    }
+    .badge {
+      background: var(--primary);
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    /* GAME CANVAS CONTAINER */
+    #game-container {
+      position: relative;
+      width: 100%; height: 100%;
+      background: #000;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    #hud {
+      position: absolute;
+      top: 10px; left: 10px; right: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+      z-index: 5;
+      font-weight: bold;
+      font-size: 0.95rem;
+      text-shadow: 2px 2px 4px #000;
+    }
+    .hud-box {
+      background: rgba(0,0,0,0.7);
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    /* MODAL QUESTION */
+    #modal-question {
+      background: rgba(0,0,0,0.85);
+      z-index: 20;
+    }
+    .question-card {
+      background: var(--panel);
+      border-radius: 16px;
+      padding: 20px;
+      max-width: 650px;
+      width: 95%;
+      border: 3px solid var(--accent);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    .option-btn {
+      background: rgba(255,255,255,0.12);
+      border: 2px solid rgba(255,255,255,0.25);
+      color: #fff;
+      padding: 14px;
+      border-radius: 10px;
+      text-align: left;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+    .option-btn:active, .option-btn:hover { background: rgba(243, 156, 18, 0.4); }
+    #feedback-area {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    /* TOUCH CONTROLS MEJORADOS CON BOTÓN ABAJO */
+    #touch-controls {
+      position: absolute;
+      bottom: 15px; left: 0; right: 0;
+      height: 130px;
+      pointer-events: none;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 15px;
+      z-index: 6;
+    }
+    .t-btn {
+      pointer-events: auto;
+      width: 58px; height: 58px;
+      background: rgba(255,255,255,0.3);
+      border: 2px solid rgba(255,255,255,0.6);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      color: #fff;
+      touch-action: manipulation;
+    }
+    .t-btn:active { background: rgba(243, 156, 18, 0.7); }
+    .t-group-left { display: flex; gap: 10px; align-self: flex-end; }
+    .t-group-right { display: flex; flex-direction: column; gap: 8px; align-self: flex-end; }
+
+    /* PODIUM & FINAL */
+    #screen-final {
+      background: linear-gradient(135deg, #111, #2c3e50);
+      overflow-y: auto;
+    }
+    .podium-container {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 15px;
+      margin: 20px 0;
+      height: 180px;
+    }
+    .podium-place {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 90px;
+    }
+    .podium-bar {
+      width: 100%;
+      background: var(--accent);
+      border-radius: 8px 8px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1.5rem;
+      color: #000;
+    }
+    .p1 { height: 120px; background: #f1c40f; }
+    .p2 { height: 85px; background: #bdc3c7; }
+    .p3 { height: 60px; background: #e67e22; }
+  </style>
+</head>
+<body>
+
+  <!-- LOBBY DE INICIO -->
+  <div id="screen-lobby" class="screen active-screen">
+    <div class="lobby-card">
+      <h2>🎮 MISIÓN MARTÍN-BARÓ</h2>
+      <p style="font-size: 0.85rem; color: #ddd; margin-bottom: 10px;">Psicología Social, Historia y Liberación</p>
+      
+      <input type="text" id="player-name" placeholder="Tu Nombre o Apodo" maxlength="15">
+      <input type="password" id="game-key" placeholder="Clave del Juego">
+      
+      <div id="lobby-status" style="margin: 10px 0; font-size: 0.9rem; color: #f1c40f;">
+        ⏳ ESPERANDO PARTICIPANTES...
+      </div>
+      
+      <div style="font-weight: bold; margin-bottom: 5px;">PARTICIPANTES: <span id="participant-count">1</span>/30</div>
+      <div class="participants-container" id="participants-list"></div>
+
+      <button class="btn" id="btn-start" onclick="tryStartGame()" disabled>🚀 INICIAR MISIÓN</button>
+      <button class="btn" style="background:#16a085; margin-top:5px;" onclick="addSimulatedPlayer()">➕ Simular Participante</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA DE JUEGO -->
+  <div id="screen-game" class="screen" style="padding:0;">
+    <div id="game-container">
+      <div id="hud">
+        <div class="hud-box" id="hud-level">Nivel 1</div>
+        <div class="hud-box" id="hud-lives">❤️ 5</div>
+        <div class="hud-box" id="hud-stars">⭐ 0/2</div>
+        <div class="hud-box" id="hud-coins">🪙 0</div>
+        <div class="hud-box" id="hud-score">Pts: 0</div>
+      </div>
+      <canvas id="canvas"></canvas>
+      
+      <!-- Controles Táctiles (Con Flechas Arriba y Abajo) -->
+      <div id="touch-controls">
+        <div class="t-group-left">
+          <div class="t-btn" id="btn-left">⬅️</div>
+          <div class="t-btn" id="btn-right">➡️</div>
+        </div>
+        <div class="t-group-right">
+          <div class="t-btn" id="btn-up">⬆️</div>
+          <div class="t-btn" id="btn-down">⬇️</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE PREGUNTAS -->
+  <div id="modal-question" class="screen">
+    <div class="question-card">
+      <h3 id="q-title" style="color: var(--accent); margin-bottom: 8px;">⭐ RETO DE PENSAMIENTO CRÍTICO</h3>
+      <p id="q-text" style="font-size: 1rem; line-height: 1.4; margin-bottom: 12px;"></p>
+      <div class="options-grid" id="q-options"></div>
+      <div id="feedback-area">
+        <p id="feedback-text" style="font-size: 0.9rem; margin-bottom: 10px;"></p>
+        <button class="btn" id="btn-close-q" style="display:none;" onclick="closeQuestionModal()">Continuar Misión</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PANTALLA FINAL / PODIO -->
+  <div id="screen-final" class="screen">
+    <h1 style="color: var(--accent); text-align:center;">🎉 ¡MISIÓN COMPLETADA! 🎉</h1>
+    <p style="text-align:center; margin-bottom: 10px;">Has liberado el conocimiento crítico de Ignacio Martín-Baró</p>
+
+    <div class="podium-container" id="podium-display"></div>
+
+    <div class="lobby-card" style="max-width: 600px; width: 100%; margin-bottom: 15px;">
+      <h3 style="border-bottom: 1px solid #555; padding-bottom: 5px;">📊 TUS ESTADÍSTICAS</h3>
+      <p id="stat-name"></p>
+      <p id="stat-score"></p>
+      <p id="stat-stars"></p>
+      <p id="stat-coins"></p>
+      <p id="stat-accuracy"></p>
+      <p id="stat-time"></p>
+    </div>
+
+    <div class="lobby-card" style="max-width: 600px; width: 100%; text-align: left; background: rgba(44, 62, 80, 0.9);">
+      <h3 style="color: var(--accent); margin-bottom: 10px; text-align:center;">💡 ¿QUÉ APRENDIMOS DE MARTÍN-BARÓ?</h3>
+      <ul style="padding-left: 20px; font-size: 0.9rem; line-height: 1.5;">
+        <li><strong>Contexto Histórico:</strong> La psicología debe comprender a las personas dentro de sus condiciones sociales, históricas y políticas.</li>
+        <li><strong>Desideologización:</strong> El pensamiento crítico ayuda a cuestionar discursos oficiales, ideologías dominantes y realidades opresivas.</li>
+        <li><strong>Compromiso Social:</strong> La investigación científica debe contribuir a comprender y transformar los problemas de las mayorías populares.</li>
+      </ul>
+    </div>
+  </div>
+
+<script>
+// --- SISTEMA DE EFECTOS DE SONIDO (WEB AUDIO API) ---
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new AudioContext();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+// 1. Salto (sonido ascendente)
+function playSoundJump() {
+  initAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.15);
+  gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.15);
+}
+
+// 2. Recolectar Moneda (tono agudo)
+function playSoundCoin() {
+  initAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(987.77, audioCtx.currentTime); // B5
+  osc.frequency.setValueAtTime(1318.51, audioCtx.currentTime + 0.08); // E6
+  gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.25);
+}
+
+// 3. Pregunta / Estrella (arpegio triunfal)
+function playSoundStar() {
+  initAudio();
+  const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+  notes.forEach((freq, index) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime + index * 0.06);
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime + index * 0.06);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + index * 0.06 + 0.15);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(audioCtx.currentTime + index * 0.06);
+    osc.stop(audioCtx.currentTime + index * 0.06 + 0.15);
+  });
+}
+
+// 4. Respuesta Correcta (acorde positivo)
+function playSoundCorrect() {
+  initAudio();
+  const notes = [523.25, 659.25, 783.99]; // C Major
+  notes.forEach(freq => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.4);
+  });
+}
+
+// 5. Respuesta Incorrecta (tono grave disonante)
+function playSoundIncorrect() {
+  initAudio();
+  const freqs = [150, 142]; // Disonancia
+  freqs.forEach(freq => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.35);
+  });
+}
+
+// 6. Recibir Daño / Perder Vida (efecto de golpe/ruido)
+function playSoundDamage() {
+  initAudio();
+  const bufferSize = audioCtx.sampleRate * 0.15;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buffer;
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+  noise.connect(gain);
+  gain.connect(audioCtx.destination);
+  noise.start();
+}
+
+// 7. Puerta de Salida / Pasar de Nivel (secuencia musical corta)
+function playSoundLevelComplete() {
+  initAudio();
+  const notes = [440, 554.37, 659.25, 880]; // A4, C#5, E5, A5
+  notes.forEach((freq, index) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime + index * 0.1);
+    gain.gain.setValueAtTime(0.25, audioCtx.currentTime + index * 0.1);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + index * 0.1 + 0.3);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(audioCtx.currentTime + index * 0.1);
+    osc.stop(audioCtx.currentTime + index * 0.1 + 0.3);
+  });
+}
+
+// --- DATOS DEL JUEGO Y PREGUNTAS (27 ESTRELLAS) ---
+const LEVEL_DATA = [
+  { name: "NIVEL 1 — DATOS BIOGRÁFICOS", type: "platform", starsReq: 2, w: 2000, h: 600 },
+  { name: "NIVEL 2 — FORMACIÓN ACADÉMICA", type: "maze", starsReq: 6, w: 1200, h: 1200 },
+  { name: "NIVEL 3 — TRAYECTORIA PROFESIONAL", type: "combo", starsReq: 4, w: 2200, h: 600 },
+  { name: "NIVEL 4 — PRINCIPALES APORTES", type: "platform", starsReq: 2, w: 1800, h: 600 },
+  { name: "NIVEL 5 — CONTEXTUALIZA SU ÉPOCA", type: "maze", starsReq: 3, w: 1000, h: 1000 },
+  { name: "NIVEL 6 — ACONTECIMIENTOS HISTÓRICOS", type: "combo", starsReq: 3, w: 2000, h: 600 },
+  { name: "NIVEL 7 — INFLUENCIA EN SU PENSAMIENTO", type: "platform", starsReq: 3, w: 2000, h: 600 },
+  { name: "NIVEL 8 — BOSS FIGHT ANALÍTICA (OBRA)", type: "maze", starsReq: 4, w: 1400, h: 1400 }
+];
+
+const QUESTIONS_BANK = [
+  // Nivel 1 (2)
+  [
+    {
+      q: "Ignacio Martín-Baró nació en España (1942) pero entregó su vida en El Salvador hasta su asesinato en 1989. ¿Por qué su lugar de fallecimiento marca un hito esencial?",
+      options: [
+        "Porque demuestra que la psicología debe practicarse en laboratorios tranquilos sin intervención social.",
+        "Porque visibiliza su compromiso orgánico con un pueblo sufriente en medio del conflicto armado, uniendo teoría y praxis.",
+        "Porque determina que solo personas nacidas en Latinoamérica pueden teorizar sobre la región."
+      ],
+      correct: 1,
+      exp: "Su entrega en la UCA junto a sus compañeros evidencia la encarnación de su teoría en la realidad del conflicto."
+    },
+    {
+      q: "Pertenecer a la Compañía de Jesús (S.J.) desde 1959 influyó en su visión. ¿Cómo se articula su fe con la labor científica?",
+      options: [
+        "Reemplazó el método científico por lecturas exclusivamente dogmáticas.",
+        "Usó su Fe y la Teología de la Liberación para orientar la ciencia hacia el servicio de los oprimidos y la justicia social.",
+        "Mantuvo su fe y su trabajo científico totalmente separados."
+      ],
+      correct: 1,
+      exp: "Martín-Baró integró la ética liberadora con el rigor científico de la psicología social."
+    }
+  ],
+  // Nivel 2 (6)
+  [
+    {
+      q: "Estudió Humanidades Clásicas en Quito y Filosofía/Letras en Bogotá. ¿Qué le aportó esta sólida formación filosófica?",
+      options: [
+        "Le enseñó a enfocarse solo en reflexiones abstractas sin tocar la realidad.",
+        "Le brindó marcos críticos para cuestionar el concepto de ser humano en la psicología tradicional.",
+        "Le sirvió únicamente para aprender idiomas antiguos sin impacto social."
+      ],
+      correct: 1,
+      exp: "La filosofía le permitió cuestionar los dogmas que aislaban al sujeto de su entorno sociopolítico."
+    },
+    {
+      q: "Obtuvo el bachillerato en Teología en Bélgica (1970). ¿Cuál es la relación entre la Teología de la Liberación y su praxis?",
+      options: [
+        "Asumió la opción preferencial por los pobres, impulsando una ciencia no neutral ante la injusticia.",
+        "Fue un trámite formal para ascender en la jerarquía.",
+        "Estableció que la psicología solo cura enfermedades biológicas individuales."
+      ],
+      correct: 0,
+      exp: "La reflexión teórica parte de la lucha y necesidades de las comunidades vulnerables."
+    },
+    {
+      q: "Se licenció en Psicología en la UCA de El Salvador (1975). ¿Por qué fue crucial estudiar el contexto salvadoreño desde dentro?",
+      options: [
+        "Para copiar exactamente cuestionarios de universidades extranjeras.",
+        "Porque comprendió que la conducta humana no se da en el vacío, sino en el entorno sociopolítico local.",
+        "Para demostrar que la psicología clínica es la única rama válida."
+      ],
+      correct: 1,
+      exp: "Estudiar localmente demostró la invalidez de exportar modelos descontextualizados a realidades traumáticas."
+    },
+    {
+      q: "Obtuvo su Maestría en Ciencias Sociales en la U. de Chicago (1977). ¿Qué lectura crítica se hace de su paso por EE.UU.?",
+      options: [
+        "Adoptó ciegamente el modelo estadounidense y lo declaró superior.",
+        "Dominó el rigor metodológico para luego ponerlo al servicio de la denuncia social en El Salvador.",
+        "Rechazó todas las metodologías cuantitativas por considerarlas burguesas."
+      ],
+      correct: 1,
+      exp: "Aprendió herramientas metodológicas avanzadas para desmentir la propaganda oficial con datos rigurosos."
+    },
+    {
+      q: "Obtuvo su Ph.D. en Chicago (1979). Si un profesional sólo adapta tests importados, ¿qué le criticaría Martín-Baró?",
+      options: [
+        "Le felicitaría por ahorrar tiempo en investigaciones.",
+        "Le criticaría el 'mimetismo científico', por ignorar el trauma psicosocial local.",
+        "Le sugeriría no usar gráficos ni estadísticas."
+      ],
+      correct: 1,
+      exp: "El mimetismo adopta modelos ajenos que ignoran la realidad concreta del pueblo."
+    },
+    {
+      q: "Al analizar su formación (Filosofía, Teología, Psicología y CC.SS.), ¿cuál es la ventaja de este enfoque interdisciplinar?",
+      options: [
+        "Genera confusión por abarcar demasiados campos.",
+        "Permite abordar el sufrimiento humano desde sus dimensiones estructurales, éticas y subjetivas.",
+        "Hace que la psicología pierda su carácter científico."
+      ],
+      correct: 1,
+      exp: "El ser humano es multidimensional; separar lo psicológico de lo social empobrece el análisis."
+    }
+  ],
+  // Nivel 3 (4)
+  [
+    {
+      q: "Trabajó en el Colegio Externado y en la Escuela de Enfermería de Santa Ana. ¿Cómo influyeron estas experiencias?",
+      options: [
+        "Le mostraron que la educación debe ser rígida y memorística.",
+        "Le permitieron palpar la realidad cotidiana de la juventud y el sector salud en comunidades marginadas.",
+        "Le convencieron de abandonar la docencia."
+      ],
+      correct: 1,
+      exp: "El contacto directo enriqueció su comprensión de las necesidades populares."
+    },
+    {
+      q: "Fue Decano y Vicerrector Académico en la UCA. ¿Qué función debe cumplir la universidad según su visión?",
+      options: [
+        "Formar profesionales sumisos al mercado sin cuestionar la desigualdad.",
+        "Ser una fuerza de transformación social, poniendo el saber al servicio de la verdad y la justicia.",
+        "Aislarse de la política nacional en una 'torre de marfil'."
+      ],
+      correct: 1,
+      exp: "La UCA fue un centro crítico de investigación y denuncia objetiva frente a la guerra."
+    },
+    {
+      q: "Dirigió la revista Estudios Centroamericanos (ECA). ¿Cuál era el objetivo principal de este medio?",
+      options: [
+        "Publicar artículos abstractos leídos solo por académicos.",
+        "Intervenir en la coyuntura, ofreciendo análisis rigurosos sobre las causas del conflicto e ideología de Estado.",
+        "Hacer propaganda partidista sin rigor."
+      ],
+      correct: 1,
+      exp: "ECA fue una plataforma intelectual para esclarecer la verdad sociopolítica."
+    },
+    {
+      q: "En 1986 fundó el Instituto Universitario de Opinión Pública (IUDOP). ¿Por qué las encuestas eran herramientas de liberación?",
+      options: [
+        "Porque le daban voz al pueblo silenciado y desmentían la propaganda oficial.",
+        "Porque buscaban ganar elecciones respaldando a un candidato.",
+        "Porque demostraban que la población apoyaba ciegamente la guerra."
+      ],
+      correct: 0,
+      exp: "El IUDOP devolvió la palabra a las mayorías populares frente a la mentira institucional."
+    }
+  ],
+  // Nivel 4 (2)
+  [
+    {
+      q: "Fundó la 'Psicología Social de la Liberación'. ¿Cuál es el postulado central de esta propuesta?",
+      options: [
+        "Adaptar al individuo para que acepte su destino sin protestar.",
+        "Acompañar a los pueblos a emanciparse de las estructuras opresivas y desalienar la conciencia.",
+        "Medicarse para ignorar la desigualdad."
+      ],
+      correct: 1,
+      exp: "La liberación busca superar la alienación y transformar las condiciones de opresión."
+    },
+    {
+      q: "Un psicólogo atiende a una comunidad desplazada usando solo un manual de EE.UU. ¿Qué error comete según Martín-Baró?",
+      options: [
+        "Usa herramientas diseñadas para sociedades de abundancia e individualistas, ignorando el contexto local.",
+        "Cobrar poco dinero por la sesión.",
+        "Ninguno, la psicología es idéntica en cualquier cultura."
+      ],
+      correct: 0,
+      exp: "Las teorías deben nacer del análisis directo de la realidad concreta."
+    }
+  ],
+  // Nivel 5 (3)
+  [
+    {
+      q: "El Salvador vivió décadas de autoritarismo y desigualdad. ¿Cómo define Martín-Baró este escenario?",
+      options: [
+        "Un problema de mala actitud individual de los ciudadanos.",
+        "Como 'violencia estructural', donde el orden social niega las necesidades básicas a la mayoría.",
+        "Una época de bonanza económica mal entendida."
+      ],
+      correct: 1,
+      exp: "La injusticia social institucionalizada es una forma primaria de violencia."
+    },
+    {
+      q: "Durante la crisis sociopolítica, ¿cuál debía ser el rol del psicólogo según el autor?",
+      options: [
+        "Declararse neutral e ignorar el dolor de las víctimas.",
+        "Analizar las raíces de la polarización e ideología para buscar una paz con justicia social.",
+        "Promover la violencia en los medios."
+      ],
+      correct: 1,
+      exp: "La neutralidad ante la opresión equivale a posicionarse a favor del opresor."
+    },
+    {
+      q: "Inspirado en la Conferencia de Medellín (1968), ¿qué significa la 'Opción Preferencial por los Pobres' en psicología?",
+      options: [
+        "Atender solo a clases altas para financiar proyectos.",
+        "Construir conocimiento científico desde la perspectiva y necesidades de los oprimidos.",
+        "Regalar víveres en lugar de investigar."
+      ],
+      correct: 1,
+      exp: "Mirar desde las víctimas revela verdades que el poder intenta ocultar."
+    }
+  ],
+  // Nivel 6 (3)
+  [
+    {
+      q: "El Concilio Vaticano II impulsó cambios en la Iglesia. ¿Qué actitud promovió en intelectuales comprometidos?",
+      options: [
+        "Encerrarse en monasterios a orar.",
+        "Compromiso activo con los derechos humanos y la transformación social.",
+        "Prohibir la investigación científica."
+      ],
+      correct: 1,
+      exp: "Abrió la institución al diálogo con las realidades sufridas por el pueblo."
+    },
+    {
+      q: "Durante la guerra civil salvadoreña, ¿qué fenómeno psicosocial masivo observó en la población?",
+      options: [
+        "Un incremento de la felicidad colectiva.",
+        "El trauma psicosocial, fruto del terror de Estado y la normalización de la violencia.",
+        "Ausencia total de estrés postraumático."
+      ],
+      correct: 1,
+      exp: "El trauma psicosocial no es un trastorno individual privado, sino una herida en las relaciones sociales."
+    },
+    {
+      q: "El 16 de noviembre de 1989 fue asesinado por el ejército. ¿Por qué consideraban peligroso su trabajo?",
+      options: [
+        "Porque almacenaba armas en la universidad.",
+        "Porque desenmascaraba las mentiras oficiales y promovía el pensamiento crítico.",
+        "Porque sus clases eran complejas."
+      ],
+      correct: 1,
+      exp: "El pensamiento crítico y la verdad empírica atemorizan a los regímenes autoritarios."
+    }
+  ],
+  // Nivel 7 (3)
+  [
+    {
+      q: "Frente a los discursos oficiales de 'paz y libertad', acuñó la 'Mentira Institucionalizada'. ¿A qué se refiere?",
+      options: [
+        "Errores menores en las noticias.",
+        "Un sistema estructurado de propaganda que falsifica la realidad para mantener el poder.",
+        "Mentiras en el entorno familiar."
+      ],
+      correct: 1,
+      exp: "La mentira institucionalizada encubre la violencia estatal bajo lemas de progreso."
+    },
+    {
+      q: "Propuso la 'Desideologización' como tarea urgente. ¿En qué consiste?",
+      options: [
+        "Desmontar los discursos falsos mediante datos objetivos para recuperar la experiencia real del pueblo.",
+        "Obligar a todos a pensar igual.",
+        "Eliminar la enseñanza de la historia."
+      ],
+      correct: 0,
+      exp: "Desideologizar es devolverle al pueblo la verdad de su propia vivencia histórica."
+    },
+    {
+      q: "Si un científico dice 'yo solo recojo datos y no me meto en política' ante violaciones de DD.HH., ¿qué respondería el autor?",
+      options: [
+        "Que es la posición más profesional.",
+        "Que la falsa neutralidad consolida el statu quo y ampara las injusticias.",
+        "Que la ciencia carece de impacto en la sociedad."
+      ],
+      correct: 1,
+      exp: "La neutralidad no existe; callar ante el abuso es respaldar al poderoso."
+    }
+  ],
+  // Nivel 8 (4)
+  [
+    {
+      q: "En 'El psicólogo social ante la guerra civil', expone la 'Guerra Paralela'. ¿Qué elementos la componen?",
+      options: [
+        "Combates entre tanques en zonas fronterizas.",
+        "La combinación de guerra sucia (represión física) y guerra psicológica (terror y desinformación).",
+        "Competencias deportivas militares."
+      ],
+      correct: 1,
+      exp: "La guerra psicológica busca destruir la cohesión social y la conciencia crítica."
+    },
+    {
+      q: "El terror genera 'fatalismo' (creencia de que nada se puede cambiar). ¿Cómo se combate?",
+      options: [
+        "Resignándose al destino.",
+        "Mediante concientización y organización comunitaria para demostrar que la historia es transformable.",
+        "Medicando a la población."
+      ],
+      correct: 1,
+      exp: "La praxis colectiva demuestra que las estructuras sociales pueden cambiarse."
+    },
+    {
+      q: "La 'Violencia Psicosocial' rompe la confianza de las comunidades. ¿Cuál es la respuesta adecuada?",
+      options: [
+        "Aislamiento individual definitivo.",
+        "Reconstruir el tejido social, la solidaridad y la memoria histórica de las víctimas.",
+        "Olvidar los hechos y no volver a mencionarlos."
+      ],
+      correct: 1,
+      exp: "Sanar exige verdad, reconstrucción del lazo comunitario y memoria."
+    },
+    {
+      q: "Según Martín-Baró, ¿cuál es la misión ético-científica final del psicólogo?",
+      options: [
+        "Lograr reconocimiento académico personal.",
+        "Poner la ciencia al servicio de la verdad, la desalienación y la liberación de los pueblos oprimidos.",
+        "Mantener el orden sin importar el costo."
+      ],
+      correct: 1,
+      exp: "El saber científico debe ser instrumento de liberación humana y justicia."
+    }
+  ]
+];
+
+// --- ESTADO GLOBAL DEL JUEGO ---
+let gameState = {
+  playerName: "",
+  key: "",
+  participants: [],
+  currentLevel: 0,
+  score: 0,
+  lives: 5,
+  stars: 0,
+  coins: 0,
+  correctQ: 0,
+  incorrectQ: 0,
+  startTime: 0,
+  endTime: 0,
+  levelStarsCollected: 0,
+  isModalOpen: false
+};
+
+// --- LOBBY Y SIMULACIÓN ---
+function updateLobbyUI() {
+  const count = gameState.participants.length;
+  document.getElementById("participant-count").innerText = count;
+  const list = document.getElementById("participants-list");
+  list.innerHTML = "";
+  gameState.participants.forEach(p => {
+    const badge = document.createElement("div");
+    badge.className = "badge";
+    badge.innerText = p.name;
+    list.appendChild(badge);
+  });
+
+  const status = document.getElementById("lobby-status");
+  const btn = document.getElementById("btn-start");
+
+  if (count < 15) {
+    status.innerText = "⏳ ESPERANDO PARTICIPANTES... (Mínimo 15)";
+    status.style.color = "#f1c40f";
+    btn.disabled = true;
+  } else if (count <= 30) {
+    status.innerText = "🟢 ¡TODOS LOS PARTICIPANTES ESTÁN LISTOS!";
+    status.style.color = "#2ecc71";
+    btn.disabled = false;
+  } else {
+    status.innerText = "⚠️ LÍMITE ALCANZADO (Máximo 30)";
+    status.style.color = "#e74c3c";
+    btn.disabled = true;
+  }
+}
+
+function addSimulatedPlayer() {
+  if (gameState.participants.length >= 30) return;
+  const names = ["Sofía", "Mateo", "Camila", "Lucas", "Valentina", "Diego", "Mariana", "Carlos", "Elena", "Santiago", "Gabriela", "Andrés", "Lucía", "Fernando", "Daniela", "Javier"];
+  const randomName = names[Math.floor(Math.random() * names.length)] + "_" + Math.floor(Math.random()*100);
+  gameState.participants.push({ name: randomName, score: Math.floor(Math.random()*500) });
+  updateLobbyUI();
+}
+
+function tryStartGame() {
+  const name = document.getElementById("player-name").value.trim();
+  const key = document.getElementById("game-key").value.trim();
+
+  if (!name) {
+    alert("Por favor escribe tu nombre.");
+    return;
+  }
+  if (key !== "MARTINBARO2026") {
+    alert("Clave del juego incorrecta. Usa: MARTINBARO2026");
+    return;
+  }
+  if (gameState.participants.length < 15) {
+    alert("Se necesitan mínimo 15 participantes para iniciar.");
+    return;
+  }
+
+  gameState.playerName = name;
+  if (!gameState.participants.some(p => p.name === name)) {
+    gameState.participants.push({ name: name, score: 0 });
+  }
+
+  gameState.startTime = Date.now();
+  switchScreen("screen-game");
+  initGameCanvas();
+  loadLevel(0);
+}
+
+// Inicialización de simulación
+gameState.participants.push({ name: "Martín (Tú)", score: 0 });
+updateLobbyUI();
+
+function switchScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active-screen"));
+  document.getElementById(id).classList.add("active-screen");
+}
+
+// --- MOTOR DE JUEGO CANVAS ---
+let canvas, ctx;
+let keys = {};
+let touchKeys = { left: false, right: false, up: false, down: false };
+
+let player = {
+  x: 50, y: 300,
+  vx: 0, vy: 0,
+  w: 32, h: 48,
+  grounded: false,
+  invulnerableTimer: 0
+};
+
+let levelObjects = {
+  platforms: [],
+  walls: [],
+  stars: [],
+  coins: [],
+  enemies: [],
+  bullets: [],
+  exitDoor: null
+};
+
+function initGameCanvas() {
+  canvas = document.getElementById("canvas");
+  ctx = canvas.getContext("2d");
+  resizeCanvas();
+  window.addEventListener("resize", resizeCanvas);
+
+  window.addEventListener("keydown", e => { keys[e.code] = true; });
+  window.addEventListener("keyup", e => { keys[e.code] = false; });
+
+  setupTouchButton("btn-left", "left");
+  setupTouchButton("btn-right", "right");
+  setupTouchButton("btn-up", "up");
+  setupTouchButton("btn-down", "down");
+
+  requestAnimationFrame(gameLoop);
+}
+
+function setupTouchButton(id, key) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  const handleStart = (e) => { e.preventDefault(); touchKeys[key] = true; };
+  const handleEnd = (e) => { e.preventDefault(); touchKeys[key] = false; };
+  btn.addEventListener("touchstart", handleStart, {passive: false});
+  btn.addEventListener("touchend", handleEnd, {passive: false});
+  btn.addEventListener("mousedown", () => { touchKeys[key] = true; });
+  btn.addEventListener("mouseup", () => { touchKeys[key] = false; });
+}
+
+function resizeCanvas() {
+  if (!canvas) return;
+  canvas.width = canvas.parentElement.clientWidth;
+  canvas.height = canvas.parentElement.clientHeight;
+}
+
+// CARGAR NIVEL
+function loadLevel(lvlIdx) {
+  gameState.currentLevel = lvlIdx;
+  gameState.levelStarsCollected = 0;
+  gameState.isModalOpen = false;
+  const lvl = LEVEL_DATA[lvlIdx];
+
+  player.x = 60;
+  player.y = (lvl.type === "maze") ? 60 : 300;
+  player.vx = 0;
+  player.vy = 0;
+  player.invulnerableTimer = 0;
+
+  levelObjects = {
+    platforms: [],
+    walls: [],
+    stars: [],
+    coins: [],
+    enemies: [],
+    bullets: [],
+    exitDoor: null
+  };
+
+  const qBank = QUESTIONS_BANK[lvlIdx];
+
+  if (lvl.type === "platform" || lvl.type === "combo") {
+    levelObjects.platforms.push({ x: 0, y: 520, w: lvl.w, h: 80 });
+
+    for (let x = 300; x < lvl.w - 300; x += 300) {
+      levelObjects.platforms.push({ x: x, y: 400, w: 180, h: 25 });
+      levelObjects.platforms.push({ x: x + 150, y: 280, w: 160, h: 25 });
+    }
+
+    let starInterval = (lvl.w - 400) / lvl.starsReq;
+    for (let i = 0; i < lvl.starsReq; i++) {
+      levelObjects.stars.push({
+        x: 350 + i * starInterval,
+        y: 230,
+        w: 30, h: 30,
+        collected: false,
+        qData: qBank[i]
+      });
+    }
+
+    for (let x = 200; x < lvl.w - 200; x += 150) {
+      levelObjects.coins.push({ x: x, y: 470, w: 15, h: 15, collected: false });
+    }
+
+    for (let x = 600; x < lvl.w - 400; x += 500) {
+      levelObjects.enemies.push({
+        x: x, y: 470, w: 32, h: 48,
+        minX: x - 100, maxX: x + 100,
+        vx: 1.5, shootTimer: 0
+      });
+    }
+
+    levelObjects.exitDoor = { x: lvl.w - 120, y: 420, w: 50, h: 100 };
+
+  } else if (lvl.type === "maze") {
+    const wallThick = 20;
+    levelObjects.walls.push({ x: 0, y: 0, w: lvl.w, h: wallThick });
+    levelObjects.walls.push({ x: 0, y: lvl.h - wallThick, w: lvl.w, h: wallThick });
+    levelObjects.walls.push({ x: 0, y: 0, w: wallThick, h: lvl.h });
+    levelObjects.walls.push({ x: lvl.w - wallThick, y: 0, w: wallThick, h: lvl.h });
+
+    for (let i = 200; i < lvl.w - 200; i += 250) {
+      levelObjects.walls.push({ x: i, y: 100, w: wallThick, h: lvl.h - 300 });
+    }
+
+    for (let i = 0; i < lvl.starsReq; i++) {
+      levelObjects.stars.push({
+        x: 120 + (i % 3) * 350,
+        y: 150 + Math.floor(i / 3) * 350,
+        w: 30, h: 30,
+        collected: false,
+        qData: qBank[i]
+      });
+    }
+
+    for (let i = 0; i < 15; i++) {
+      levelObjects.coins.push({
+        x: 100 + (i * 70) % (lvl.w - 200),
+        y: 100 + (i * 90) % (lvl.h - 200),
+        w: 15, h: 15,
+        collected: false
+      });
+    }
+
+    levelObjects.enemies.push({
+      x: 300, y: 300, w: 32, h: 32,
+      minX: 250, maxX: 500, vx: 2, shootTimer: 0
+    });
+
+    levelObjects.exitDoor = { x: lvl.w - 100, y: lvl.h - 120, w: 60, h: 80 };
+  }
+
+  updateHUD();
+}
+
+function updateHUD() {
+  const lvl = LEVEL_DATA[gameState.currentLevel];
+  document.getElementById("hud-level").innerText = lvl.name;
+  document.getElementById("hud-lives").innerText = `❤️ ${gameState.lives}`;
+  document.getElementById("hud-stars").innerText = `⭐ ${gameState.levelStarsCollected}/${lvl.starsReq}`;
+  document.getElementById("hud-coins").innerText = `🪙 ${gameState.coins}`;
+  document.getElementById("hud-score").innerText = `Pts: ${gameState.score}`;
+}
+
+// BUCLE PRINCIPAL
+function gameLoop() {
+  if (!gameState.isModalOpen) {
+    updatePhysics();
+  }
+  renderGame();
+  requestAnimationFrame(gameLoop);
+}
+
+function updatePhysics() {
+  const lvl = LEVEL_DATA[gameState.currentLevel];
+  const isPlatformer = (lvl.type === "platform" || lvl.type === "combo");
+
+  if (player.invulnerableTimer > 0) player.invulnerableTimer--;
+
+  // Movimiento Horizontal
+  if (keys["ArrowLeft"] || keys["KeyA"] || touchKeys.left) {
+    player.vx = -4.5;
+  } else if (keys["ArrowRight"] || keys["KeyD"] || touchKeys.right) {
+    player.vx = 4.5;
+  } else {
+    player.vx *= 0.8;
+  }
+
+  // Movimiento Vertical
+  if (isPlatformer) {
+    player.vy += 0.55;
+    if ((keys["Space"] || keys["ArrowUp"] || keys["KeyW"] || touchKeys.up) && player.grounded) {
+      player.vy = -12;
+      player.grounded = false;
+      playSoundJump(); // 🔊 Sonido de Salto
+    }
+  } else {
+    // Modo Laberinto (Mover Arriba y Abajo libremente)
+    if (keys["ArrowUp"] || keys["KeyW"] || touchKeys.up) {
+      player.vy = -4.5;
+    } else if (keys["ArrowDown"] || keys["KeyS"] || touchKeys.down) {
+      player.vy = 4.5;
+    } else {
+      player.vy *= 0.8;
+    }
+  }
+
+  player.x += player.vx;
+  player.y += player.vy;
+
+  // Colisiones con plataformas
+  player.grounded = false;
+  if (isPlatformer) {
+    levelObjects.platforms.forEach(p => {
+      if (player.x < p.x + p.w && player.x + player.w > p.x &&
+          player.y + player.h >= p.y && player.y + player.h <= p.y + p.h + player.vy) {
+        player.y = p.y - player.h;
+        player.vy = 0;
+        player.grounded = true;
+      }
+    });
+  }
+
+  // Paredes
+  levelObjects.walls.forEach(w => {
+    if (player.x < w.x + w.w && player.x + player.w > w.x &&
+        player.y < w.y + w.h && player.y + player.h > w.y) {
+      player.x -= player.vx;
+      player.y -= player.vy;
+    }
+  });
+
+  player.x = Math.max(0, Math.min(lvl.w - player.w, player.x));
+  player.y = Math.max(0, Math.min(lvl.h - player.h, player.y));
+
+  // Monedas
+  levelObjects.coins.forEach(c => {
+    if (!c.collected && checkOverlap(player, c)) {
+      c.collected = true;
+      gameState.coins++;
+      gameState.score += 20;
+      playSoundCoin(); // 🔊 Sonido Recolectar Moneda
+      updateHUD();
+    }
+  });
+
+  // Estrellas
+  levelObjects.stars.forEach(s => {
+    if (!s.collected && checkOverlap(player, s)) {
+      playSoundStar(); // 🔊 Sonido Estrella / Pregunta
+      triggerQuestionModal(s);
+    }
+  });
+
+  // Enemigos y Disparos
+  levelObjects.enemies.forEach(e => {
+    e.x += e.vx;
+    if (e.x < e.minX || e.x > e.maxX) e.vx *= -1;
+
+    e.shootTimer++;
+    if (e.shootTimer > 110) {
+      e.shootTimer = 0;
+      levelObjects.bullets.push({
+        x: e.x + e.w/2,
+        y: e.y + 15,
+        vx: (player.x < e.x) ? -4 : 4,
+        w: 8, h: 4
+      });
+    }
+
+    if (checkOverlap(player, e)) {
+      takeDamage();
+    }
+  });
+
+  levelObjects.bullets.forEach((b, idx) => {
+    b.x += b.vx;
+    if (checkOverlap(player, b)) {
+      takeDamage();
+      levelObjects.bullets.splice(idx, 1);
+    }
+  });
+
+  // Puerta de Salida
+  if (levelObjects.exitDoor && checkOverlap(player, levelObjects.exitDoor)) {
+    if (gameState.levelStarsCollected >= lvl.starsReq) {
+      playSoundLevelComplete(); // 🔊 Sonido Pasar de Nivel
+      if (gameState.currentLevel < LEVEL_DATA.length - 1) {
+        alert("🌟 ¡NIVEL COMPLETADO! Avanzando de nivel.");
+        loadLevel(gameState.currentLevel + 1);
+      } else {
+        finishGame();
+      }
+    }
+  }
+}
+
+// SISTEMA DE DAÑO Y VIDAS
+function takeDamage() {
+  if (player.invulnerableTimer > 0) return;
+
+  playSoundDamage(); // 🔊 Sonido Recibir Daño
+  gameState.lives--;
+  player.invulnerableTimer = 60; // Parpadeo temporal
+  updateHUD();
+
+  if (gameState.lives <= 0) {
+    alert("💀 ¡SIN VIDAS! El nivel se reiniciará.");
+    gameState.lives = 5;
+    loadLevel(gameState.currentLevel);
+  }
+}
+
+function checkOverlap(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x &&
+         a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+// DIBUJO DE ESCENARIO
+function renderGame() {
+  if (!ctx) return;
+  const lvl = LEVEL_DATA[gameState.currentLevel];
+
+  let camX = player.x - canvas.width / 2;
+  let camY = player.y - canvas.height / 2;
+  camX = Math.max(0, Math.min(lvl.w - canvas.width, camX));
+  camY = Math.max(0, Math.min(lvl.h - canvas.height, camY));
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(-camX, -camY);
+
+  ctx.fillStyle = (lvl.type === "maze") ? "#111827" : "#1f2937";
+  ctx.fillRect(0, 0, lvl.w, lvl.h);
+
+  ctx.fillStyle = "#374151";
+  levelObjects.platforms.forEach(p => {
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+    ctx.fillStyle = "#10b981";
+    ctx.fillRect(p.x, p.y, p.w, 4);
+    ctx.fillStyle = "#374151";
+  });
+
+  ctx.fillStyle = "#4b5563";
+  levelObjects.walls.forEach(w => {
+    ctx.fillRect(w.x, w.y, w.w, w.h);
+  });
+
+  ctx.fillStyle = "#f59e0b";
+  levelObjects.coins.forEach(c => {
+    if (!c.collected) {
+      ctx.beginPath();
+      ctx.arc(c.x + c.w/2, c.y + c.h/2, c.w/2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+
+  levelObjects.stars.forEach(s => {
+    if (!s.collected) {
+      ctx.fillStyle = "#facc15";
+      ctx.font = "24px sans-serif";
+      ctx.fillText("⭐", s.x, s.y + 22);
+    }
+  });
+
+  levelObjects.enemies.forEach(e => {
+    ctx.fillStyle = "#dc2626";
+    ctx.fillRect(e.x, e.y, e.w, e.h);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(e.x + (e.vx > 0 ? 20 : -10), e.y + 15, 18, 6);
+  });
+
+  ctx.fillStyle = "#ef4444";
+  levelObjects.bullets.forEach(b => {
+    ctx.fillRect(b.x, b.y, b.w, b.h);
+  });
+
+  if (levelObjects.exitDoor) {
+    const isUnlocked = gameState.levelStarsCollected >= lvl.starsReq;
+    ctx.fillStyle = isUnlocked ? "#10b981" : "#6b7280";
+    ctx.fillRect(levelObjects.exitDoor.x, levelObjects.exitDoor.y, levelObjects.exitDoor.w, levelObjects.exitDoor.h);
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 14px sans-serif";
+    ctx.fillText(isUnlocked ? "SALIDA" : "🔒", levelObjects.exitDoor.x + 5, levelObjects.exitDoor.y + 40);
+  }
+
+  // Jugador con Parpadeo si es invulnerable
+  if (player.invulnerableTimer % 6 < 3) {
+    ctx.fillStyle = "#3b82f6";
+    ctx.fillRect(player.x, player.y, player.w, player.h);
+    ctx.fillStyle = "#1f2937";
+    ctx.fillRect(player.x + 4, player.y, player.w - 8, 8);
+    ctx.fillStyle = "#fde047";
+    ctx.fillRect(player.x + 6, player.y + 8, player.w - 12, 10);
+  }
+
+  ctx.restore();
+}
+
+// --- EVALUACIÓN DE PREGUNTAS Y MODAL ---
+let activeStar = null;
+
+function triggerQuestionModal(star) {
+  gameState.isModalOpen = true;
+  activeStar = star;
+  const qData = star.qData;
+
+  document.getElementById("q-text").innerText = qData.q;
+  const optsDiv = document.getElementById("q-options");
+  optsDiv.innerHTML = "";
+
+  qData.options.forEach((optText, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "option-btn";
+    btn.innerText = `${idx + 1}. ${optText}`;
+    btn.onclick = () => evaluateAnswer(idx);
+    optsDiv.appendChild(btn);
+  });
+
+  document.getElementById("feedback-area").style.display = "none";
+  document.getElementById("btn-close-q").style.display = "none";
+  switchScreen("modal-question");
+}
+
+function evaluateAnswer(selectedIdx) {
+  const qData = activeStar.qData;
+  const feedbackArea = document.getElementById("feedback-area");
+  const feedbackText = document.getElementById("feedback-text");
+  feedbackArea.style.display = "block";
+
+  if (selectedIdx === qData.correct) {
+    playSoundCorrect(); // 🔊 Sonido Respuesta Correcta
+    feedbackArea.style.background = "rgba(46, 204, 113, 0.25)";
+    feedbackArea.style.border = "1px solid #2ecc71";
+    feedbackText.innerHTML = `<strong>✅ ¡CORRECTO!</strong><br>${qData.exp}`;
+
+    if (!activeStar.collected) {
+      activeStar.collected = true;
+      gameState.stars++;
+      gameState.levelStarsCollected++;
+      gameState.correctQ++;
+      gameState.score += 100;
+      updateHUD();
+    }
+  } else {
+    playSoundIncorrect(); // 🔊 Sonido Respuesta Incorrecta
+    feedbackArea.style.background = "rgba(231, 76, 60, 0.25)";
+    feedbackArea.style.border = "1px solid #e74c3c";
+    feedbackText.innerHTML = `<strong>❌ RESPUESTA INCORRECTA.</strong><br>Analiza el contexto histórico de la pregunta e inténtalo de nuevo.`;
+    gameState.incorrectQ++;
+    gameState.score = Math.max(0, gameState.score - 20);
+  }
+
+  document.getElementById("btn-close-q").style.display = "block";
+}
+
+function closeQuestionModal() {
+  gameState.isModalOpen = false;
+  switchScreen("screen-game");
+}
+
+// --- FINALIZACIÓN Y RANKING ---
+function finishGame() {
+  gameState.endTime = Date.now();
+  const totalSeconds = Math.floor((gameState.endTime - gameState.startTime) / 1000);
+  const totalQuestions = gameState.correctQ + gameState.incorrectQ;
+  const accuracy = totalQuestions > 0 ? Math.round((gameState.correctQ / totalQuestions) * 100) : 100;
+
+  const pObj = gameState.participants.find(p => p.name === gameState.playerName);
+  if (pObj) pObj.score = gameState.score;
+
+  gameState.participants.sort((a, b) => b.score - a.score);
+
+  document.getElementById("stat-name").innerText = `Participante: ${gameState.playerName}`;
+  document.getElementById("stat-score").innerText = `Puntaje Final: ${gameState.score} pts`;
+  document.getElementById("stat-stars").innerText = `Estrellas Obtenidas: ⭐ ${gameState.stars}/27`;
+  document.getElementById("stat-coins").innerText = `Monedas Recolectadas: 🪙 ${gameState.coins}`;
+  document.getElementById("stat-accuracy").innerText = `Porcentaje de Aciertos: ${accuracy}%`;
+  document.getElementById("stat-time").innerText = `Tiempo Total: ${totalSeconds} segundos`;
+
+  const podiumDiv = document.getElementById("podium-display");
+  podiumDiv.innerHTML = "";
+
+  const top3 = gameState.participants.slice(0, 3);
+  const classes = ["p2", "p1", "p3"];
+  const labels = ["🥈 2º", "🥇 1º", "🥉 3º"];
+  const visualOrder = [top3[1], top3[0], top3[2]];
+
+  visualOrder.forEach((p, idx) => {
+    if (p) {
+      const pBox = document.createElement("div");
+      pBox.className = "podium-place";
+      pBox.innerHTML = `
+        <div style="font-size:0.8rem; font-weight:bold;">${p.name}</div>
+        <div style="font-size:0.75rem;">${p.score} pts</div>
+        <div class="podium-bar ${classes[idx]}">${labels[idx]}</div>
+      `;
+      podiumDiv.appendChild(pBox);
+    }
+  });
+
+  switchScreen("screen-final");
+}
+</script>
+</body>
+</html>
